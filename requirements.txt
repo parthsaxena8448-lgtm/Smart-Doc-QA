@@ -4,7 +4,7 @@ langchain-community
 langchain-google-genai
 langchain-text-splitters
 google-generativeai
-pypdf
+pymupdf
 python-docx
 python-pptx
 faiss-cpu
