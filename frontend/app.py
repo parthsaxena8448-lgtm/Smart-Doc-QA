@@ -183,7 +183,8 @@ else:
             st.divider()
             st.download_button(
                 label="📥 Download Summary as Text",
-                data=st.session_state.document_summary,
+                # This joins the list of chunks into one single string with newlines
+                data="\n\n".join(st.session_state.document_summary) if isinstance(st.session_state.document_summary, list) else st.session_state.document_summary,
                 file_name=f"{st.session_state.user_name}_document_summary.txt",
                 mime="text/plain",
                 type="primary"
