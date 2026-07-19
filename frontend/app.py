@@ -3,22 +3,25 @@ import os
 import sys
 import time
 
+# --- Helper Functions ---
 def stream_text(text):
-    # If it's a list, join it or extract the text from the first item
+    # If the response is a list (like [{'type': 'text', 'text': '...'}])
     if isinstance(text, list):
-        # Join any dictionary contents or strings into one big block
         text = " ".join([item.get('text', str(item)) if isinstance(item, dict) else str(item) for item in text])
-    
-    # If it's just a dict, extract the text
+    # If it's just a dictionary
     elif isinstance(text, dict):
         text = text.get('text', str(text))
     
-    # Now it is guaranteed to be a string, so we can split it safely
+    # If text is None or empty, return a placeholder
+    if text is None:
+        text = "No response generated."
+
+    # Now it is guaranteed to be a string
     for word in text.split(" "):
         yield word + " "
         time.sleep(0.05)
 
-# Ensure Python can find both the root folder and the core folder
+# --- Path Configuration ---
 root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 core_path = os.path.join(root_path, 'core')
 sys.path.append(root_path)
@@ -39,10 +42,7 @@ st.markdown("""
     <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    
     .block-container { padding-top: 2rem; padding-bottom: 2rem; }
-    
-    /* Welcome screen hero styling */
     .hero-title {
         font-size: 4.5rem;
         font-weight: 800;
@@ -66,7 +66,7 @@ st.markdown("""
 if "app_started" not in st.session_state:
     st.session_state.app_started = False
 if "user_name" not in st.session_state:
-    st.session_state.user_name = "Guest" # Default name if none is provided
+    st.session_state.user_name = "Guest"
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 if "db_ready" not in st.session_state:
@@ -81,7 +81,6 @@ if "chunk_count" not in st.session_state:
 # ==========================================
 if not st.session_state.app_started:
     st.write("<br><br>", unsafe_allow_html=True)
-    
     st.markdown('<div class="hero-title">Smart Document AI</div>', unsafe_allow_html=True)
     st.markdown('<div class="hero-subtitle">Turn static files into an interactive, intelligent knowledge base.</div>', unsafe_allow_html=True)
     
@@ -95,17 +94,12 @@ if not st.session_state.app_started:
     
     st.write("<br><br>", unsafe_allow_html=True)
     
-    # Center the name input and launch button
     _, btn_col, _ = st.columns([1, 1.5, 1])
     with btn_col:
-        # Request the user's name
         entered_name = st.text_input("Enter your name to personalize your workspace:", placeholder="e.g., Parth")
-        
         if st.button("Launch Workspace 🚀", type="primary", use_container_width=True):
-            # Save the name (or keep "Guest" if they leave it blank)
             if entered_name.strip():
                 st.session_state.user_name = entered_name.strip()
-                
             st.session_state.app_started = True
             st.rerun() 
 
@@ -113,36 +107,25 @@ if not st.session_state.app_started:
 # VIEW 2: THE MAIN APPLICATION
 # ==========================================
 else:
-    # --- Sidebar Component ---
     with st.sidebar:
         st.title(f"🏢 {st.session_state.user_name}'s Files")
         st.markdown("Upload your knowledge base to start interacting with your documents.")
         st.divider()
         
         st.header("1. Upload Documents")
-        uploaded_files = st.file_uploader(
-            "Supported formats: PDF, DOCX, PPTX", 
-            type=['pdf', 'docx', 'pptx'], 
-            accept_multiple_files=True,
-            label_visibility="collapsed"
-        )
+        uploaded_files = st.file_uploader("Supported formats: PDF, DOCX, PPTX", type=['pdf', 'docx', 'pptx'], accept_multiple_files=True, label_visibility="collapsed")
         
         if uploaded_files:
             st.info(f"📂 {len(uploaded_files)} file(s) staged.")
-            
             if st.button("⚙️ Process & Index", type="primary", use_container_width=True):
                 with st.spinner("Analyzing and indexing documents..."):
                     all_raw_text = ""
-                    
-                    import os
-                    # Ensure the data directory exists
                     if not os.path.exists("data"):
                         os.makedirs("data")
                     for uploaded_file in uploaded_files:
                         save_path = os.path.join("data", uploaded_file.name)
                         with open(save_path, "wb") as f:
                             f.write(uploaded_file.getbuffer())
-                        
                         all_raw_text += extract_text(save_path) + "\n\n"
                     
                     if all_raw_text.strip():
@@ -151,7 +134,6 @@ else:
                         st.session_state.chunk_count = len(chunks)
                         embeddings = generate_embeddings(chunks)
                         create_and_save_index(embeddings, chunks)
-                        
                         st.session_state.db_ready = True
                         st.toast("Knowledge base built successfully!", icon="✅")
                     else:
@@ -168,18 +150,14 @@ else:
             st.session_state.app_started = False
             st.rerun()
 
-    # --- Main Interface ---
     if not st.session_state.db_ready:
-        # Personalized welcome message before documents are uploaded
         st.title(f"👋 Welcome, {st.session_state.user_name}!")
         st.info("👈 Please upload and process a document in the sidebar to begin.")
-        
     else:
         col1, col2 = st.columns([4, 1])
         with col1:
             st.title(f"🧠 {st.session_state.user_name}'s Active Workspace")
         with col2:
-            # Inject empty space to push the button down to align with the title
             st.markdown("<div style='margin-top: 25px;'></div>", unsafe_allow_html=True)
             st.button("Clear Chat", on_click=lambda: st.session_state.chat_history.clear(), use_container_width=True)
             
@@ -187,36 +165,34 @@ else:
 
         with tab_summary:
             st.markdown("### Document Overview")
-    
-        # Unpack the data if it is a list/dict
-        summary_data = st.session_state.document_summary
-        if isinstance(summary_data, list) and len(summary_data) > 0:
-            # Get the first item (the dictionary)
-            item = summary_data[0]
-            # Extract the 'text' key if it exists
-            display_text = item.get('text', str(item)) if isinstance(item, dict) else str(item)
-        elif isinstance(summary_data, dict):
-            display_text = summary_data.get('text', str(summary_data))
-        else:
-            display_text = str(summary_data)
-        
-    st.markdown(display_text)
-            
-    st.divider()
-    st.download_button(
-        label="Download Summary as Text",
-        data="\n\n".join([item.get('content', str(item)) if isinstance(item, dict) else str(item) for item in st.session_state.document_summary]) if isinstance(st.session_state.document_summary, list) else str(st.session_state.document_summary),
-        file_name=f"{st.session_state.user_name}_document_summary.txt",
-        mime="text/plain",
-        type="primary"
-    )
+            if st.session_state.document_summary:
+                summary_data = st.session_state.document_summary
+                if isinstance(summary_data, list) and len(summary_data) > 0:
+                    item = summary_data[0]
+                    display_text = item.get('text', str(item)) if isinstance(item, dict) else str(item)
+                elif isinstance(summary_data, dict):
+                    display_text = summary_data.get('text', str(summary_data))
+                else:
+                    display_text = str(summary_data)
+                
+                st.markdown(display_text)
+                st.divider()
+                
+                st.download_button(
+                    label="Download Summary as Text",
+                    data="\n\n".join([item.get('content', str(item)) if isinstance(item, dict) else str(item) for item in st.session_state.document_summary]) if isinstance(st.session_state.document_summary, list) else str(st.session_state.document_summary),
+                    file_name=f"{st.session_state.user_name}_document_summary.txt",
+                    mime="text/plain",
+                    type="primary"
+                )
+            else:
+                st.info("Process a document to see the executive summary here.")
 
-    with tab_chat:
+        with tab_chat:
             for message in st.session_state.chat_history:
                 avatar = "🧑‍💻" if message["role"] == "user" else "🤖"
                 with st.chat_message(message["role"], avatar=avatar):
                     st.markdown(message["content"])
-                    
                     if "sources" in message and message["sources"]:
                         with st.expander("🔍 View Source Documents"):
                             for i, source_text in enumerate(message["sources"]):
@@ -226,7 +202,6 @@ else:
             if user_question := st.chat_input("Ask something about your documents..."):
                 with st.chat_message("user", avatar="🧑‍💻"):
                     st.markdown(user_question)
-                
                 st.session_state.chat_history.append({"role": "user", "content": user_question})
                 
                 with st.chat_message("assistant", avatar="🤖"):
@@ -234,7 +209,6 @@ else:
                         db_index, db_chunks = load_database()
                         context_chunks = search_documents(user_question, db_index, db_chunks)
                         ai_response = generate_answer(user_question, context_chunks)
-                        
                         st.write_stream(stream_text(ai_response))
                         
                         with st.expander("🔍 View Source Documents"):
