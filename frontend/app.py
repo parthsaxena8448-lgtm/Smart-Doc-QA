@@ -4,10 +4,16 @@ import sys
 import time
 
 def stream_text(text):
-    """Simulates a live typing effect."""
+    if text is None:
+        yield "I couldn't generate a response. Please try again."
+        return
+    # Now check if it's a dict (common in RAG chains)
+    if isinstance(text, dict):
+        text = text.get('text', str(text))
+        
     for word in text.split(" "):
         yield word + " "
-        time.sleep(0.04)
+        time.sleep(0.05)
 
 # Ensure Python can find both the root folder and the core folder
 root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -178,7 +184,11 @@ else:
 
         with tab_summary:
             st.markdown("### Document Overview")
-            st.markdown(st.session_state.document_summary)
+            # Safely extract text from the dictionary if it exists
+            summary_text = st.session_state.document_summary
+            if isinstance(summary_text, dict):
+               summary_text = summary_text.get('text', str(summary_text))
+            st.markdown(summary_text)
             
             st.divider()
             st.download_button(
