@@ -9,3 +9,4 @@ python-docx
 python-pptx
 faiss-cpu
 sentence-transformers
+torchvision

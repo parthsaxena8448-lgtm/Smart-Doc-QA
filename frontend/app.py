@@ -125,6 +125,10 @@ else:
                 with st.spinner("Analyzing and indexing documents..."):
                     all_raw_text = ""
                     
+                    import os
+                    # Ensure the data directory exists
+                    if not os.path.exists("data"):
+                        os.makedirs("data")
                     for uploaded_file in uploaded_files:
                         save_path = os.path.join("data", uploaded_file.name)
                         with open(save_path, "wb") as f:
