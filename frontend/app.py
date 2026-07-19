@@ -4,13 +4,16 @@ import sys
 import time
 
 def stream_text(text):
-    if text is None:
-        yield "I couldn't generate a response. Please try again."
-        return
-    # Now check if it's a dict (common in RAG chains)
-    if isinstance(text, dict):
+    # If it's a list, join it or extract the text from the first item
+    if isinstance(text, list):
+        # Join any dictionary contents or strings into one big block
+        text = " ".join([item.get('text', str(item)) if isinstance(item, dict) else str(item) for item in text])
+    
+    # If it's just a dict, extract the text
+    elif isinstance(text, dict):
         text = text.get('text', str(text))
-        
+    
+    # Now it is guaranteed to be a string, so we can split it safely
     for word in text.split(" "):
         yield word + " "
         time.sleep(0.05)
