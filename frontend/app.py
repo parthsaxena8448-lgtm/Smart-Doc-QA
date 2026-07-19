@@ -187,14 +187,23 @@ else:
 
         with tab_summary:
             st.markdown("### Document Overview")
-            # Safely extract text from the dictionary if it exists
-            summary_text = st.session_state.document_summary
-            if isinstance(summary_text, dict):
-               summary_text = summary_text.get('text', str(summary_text))
-            st.markdown(summary_text)
+    
+        # Unpack the data if it is a list/dict
+        summary_data = st.session_state.document_summary
+        if isinstance(summary_data, list) and len(summary_data) > 0:
+            # Get the first item (the dictionary)
+            item = summary_data[0]
+            # Extract the 'text' key if it exists
+            display_text = item.get('text', str(item)) if isinstance(item, dict) else str(item)
+        elif isinstance(summary_data, dict):
+            display_text = summary_data.get('text', str(summary_data))
+        else:
+            display_text = str(summary_data)
+        
+    st.markdown(display_text)
             
-            st.divider()
-            st.download_button(
+    st.divider()
+    st.download_button(
         label="Download Summary as Text",
         data="\n\n".join([item.get('content', str(item)) if isinstance(item, dict) else str(item) for item in st.session_state.document_summary]) if isinstance(st.session_state.document_summary, list) else str(st.session_state.document_summary),
         file_name=f"{st.session_state.user_name}_document_summary.txt",
@@ -202,7 +211,7 @@ else:
         type="primary"
     )
 
-        with tab_chat:
+    with tab_chat:
             for message in st.session_state.chat_history:
                 avatar = "🧑‍💻" if message["role"] == "user" else "🤖"
                 with st.chat_message(message["role"], avatar=avatar):
