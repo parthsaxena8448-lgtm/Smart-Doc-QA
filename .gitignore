@@ -1,0 +1,15 @@
+# Ignore the virtual environment
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# Ignore local application data
+data/chunks.pkl
+data/faiss_index.bin
+data/*.pdf
+data/*.docx
+data/*.pptx
+
+# CRITICAL: Ignore your private API keys
+.env

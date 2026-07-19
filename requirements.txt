@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+streamlit
+langchain
+langchain-google-genai
+sentence-transformers
+faiss-cpu
+PyMuPDF
+python-docx
+python-pptx
+python-dotenv
